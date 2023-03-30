@@ -9,6 +9,7 @@ import query.QueryError
 import react.FC
 import react.Props
 import react.dom.html.ReactHTML
+import react.useContext
 import ru.altmanea.webapp.common.Item
 import ru.altmanea.webapp.common.ItemId
 import tanstack.query.core.QueryKey
@@ -18,6 +19,7 @@ import tanstack.react.query.useQueryClient
 import tools.HTTPResult
 import tools.fetch
 import tools.fetchText
+import userInfoContext
 import kotlin.js.json
 
 external interface RestContainerChildProps<E> : Props {
@@ -35,11 +37,17 @@ inline fun <reified E : Any> restContainer(
 ) = FC(displayName) { _: Props ->
     val queryClient = useQueryClient()
     val myQueryKey = arrayOf(queryId).unsafeCast<QueryKey>()
+    val userInfo = useContext(userInfoContext)
 
     val query = useQuery<String, QueryError, String, QueryKey>(
         queryKey = myQueryKey,
         queryFn = {
-            fetchText(url)
+            fetchText(
+                url,
+                jso {
+                    headers = json("Authorization" to userInfo?.second?.authHeader)
+                }
+            )
         }
     )
     val addMutation = useMutation<HTTPResult, Any, E, Any>(
@@ -48,7 +56,10 @@ inline fun <reified E : Any> restContainer(
                 url,
                 jso {
                     method = "POST"
-                    headers = json("Content-Type" to "application/json")
+                    headers = json(
+                        "Content-Type" to "application/json",
+                        "Authorization" to userInfo?.second?.authHeader
+                    )
                     body = Json.encodeToString(element)
                 }
             )
@@ -65,6 +76,7 @@ inline fun <reified E : Any> restContainer(
                 "$url/$id",
                 jso {
                     method = "DELETE"
+                    headers = json("Authorization" to userInfo?.second?.authHeader)
                 }
             )
         },
@@ -82,7 +94,8 @@ inline fun <reified E : Any> restContainer(
                 jso {
                     method = "PUT"
                     headers = json(
-                        "Content-Type" to "application/json"
+                        "Content-Type" to "application/json",
+                        "Authorization" to userInfo?.second?.authHeader
                     )
                     body = Json.encodeToString(item)
                 }

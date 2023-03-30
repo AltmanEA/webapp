@@ -6,8 +6,14 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import ru.altmanea.webapp.access.Token
+import ru.altmanea.webapp.access.json
+import ru.altmanea.webapp.auth.userAdmin
+import ru.altmanea.webapp.auth.userTutor
 import ru.altmanea.webapp.common.Item
+import ru.altmanea.webapp.config.Config
 import ru.altmanea.webapp.data.Student
 import ru.altmanea.webapp.data.json
 import ru.altmanea.webapp.main
@@ -19,8 +25,16 @@ class ApplicationTest : StringSpec({
             application {
                 main()
             }
+            val token = Json.decodeFromString<Token>(
+                client.post(Config.loginPath) {
+                    contentType(ContentType.Application.Json)
+                    setBody(userAdmin.json)
+                }.bodyAsText()
+            )
             val students = withClue("read") {
-                val response = client.get("/students/")
+                val response = client.get("/students/") {
+                    headers { this["Authorization"] = token.authHeader }
+                }
                 response.status shouldBe HttpStatusCode.OK
                 Json.decodeFromString<List<Item<Student>>>(response.bodyAsText()).apply {
                     size shouldBe 4
@@ -28,7 +42,9 @@ class ApplicationTest : StringSpec({
             }
             withClue("read id") {
                 val sheldon = students.first { it.elem.firstname == "Sheldon" }
-                val response = client.get("/students/${sheldon.id}")
+                val response = client.get("/students/${sheldon.id}") {
+                    headers { this["Authorization"] = token.authHeader }
+                }
                 response.status shouldBe HttpStatusCode.OK
                 Json.decodeFromString<Item<Student>>(response.bodyAsText()).apply {
                     elem.firstname shouldBe "Sheldon"
@@ -36,32 +52,50 @@ class ApplicationTest : StringSpec({
             }
             val newStudents = withClue("create") {
                 val response = client.post("/students/") {
+                    headers { this["Authorization"] = token.authHeader }
                     contentType(ContentType.Application.Json)
                     setBody(Student("Raj", "Koothrappali").json)
                 }
                 response.status shouldBe HttpStatusCode.Created
                 Json.decodeFromString<List<Item<Student>>>(
-                    client.get("/students/").bodyAsText()
+                    client.get("/students/"){
+                        headers { this["Authorization"] = token.authHeader }
+                    }.bodyAsText()
                 ).apply {
                     size shouldBe 5
                 }
             }
             val emi = withClue("update") {
                 val raj = newStudents.first { it.elem.firstname == "Raj" }
-                client.put("/students/${raj.id}") {
+                client.put("/students/") {
+                    headers { this["Authorization"] = token.authHeader }
                     contentType(ContentType.Application.Json)
-                    setBody(Student("Amy", "Fowler").json)
+                    setBody(
+                        Json.encodeToString(
+                            Item(
+                                Student("Amy", "Fowler"),
+                                raj.id, raj.version)
+                        )
+                    )
+                }.let {
+                    it.status shouldBe HttpStatusCode.Created
                 }
                 Json.decodeFromString<Item<Student>>(
-                    client.get("/students/${raj.id}").bodyAsText()
+                    client.get("/students/${raj.id}"){
+                        headers { this["Authorization"] = token.authHeader }
+                    }.bodyAsText()
                 ).apply {
                     elem.firstname shouldBe "Amy"
                 }
             }
-            withClue("delete"){
-                client.delete("/students/${emi.id}")
+            withClue("delete") {
+                client.delete("/students/${emi.id}"){
+                    headers { this["Authorization"] = token.authHeader }
+                }
                 Json.decodeFromString<List<Item<Student>>>(
-                    client.get("/students/").bodyAsText()
+                    client.get("/students/"){
+                        headers { this["Authorization"] = token.authHeader }
+                    }.bodyAsText()
                 ).apply {
                     size shouldBe 4
                 }
