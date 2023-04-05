@@ -7,6 +7,8 @@ import react.dom.html.ReactHTML.input
 import react.dom.html.ReactHTML.span
 import react.useState
 import ru.altmanea.webapp.data.Student
+import ru.altmanea.webapp.type.Firstname
+import ru.altmanea.webapp.type.Surname
 import web.html.InputType
 
 val CStudentEdit = FC<EditItemProps<Student>>("StudentEdit") { props ->
@@ -16,12 +18,12 @@ val CStudentEdit = FC<EditItemProps<Student>>("StudentEdit") { props ->
         input {
             type = InputType.text
             value = firstname
-            onChange = { firstname = it.target.value }
+            onChange = { firstname = Firstname(it.target.value) }
         }
         input {
             type = InputType.text
             value = surname
-            onChange = {surname = it.target.value }
+            onChange = {surname = Surname(it.target.value) }
         }
     }
     button {

@@ -7,6 +7,8 @@ import react.dom.html.ReactHTML.input
 import react.dom.html.ReactHTML.span
 import react.useState
 import ru.altmanea.webapp.data.Student
+import ru.altmanea.webapp.type.Firstname
+import ru.altmanea.webapp.type.Surname
 import web.html.InputType
 
 val CStudentAdd = FC<EditAddProps<Student>>("StudentAdd") { props ->
@@ -27,7 +29,7 @@ val CStudentAdd = FC<EditAddProps<Student>>("StudentAdd") { props ->
     button {
         +"✓"
         onClick = {
-            props.saveElement(Student(firstname, surname))
+            props.saveElement(Student(Firstname(firstname), Surname(surname)))
         }
     }
 }

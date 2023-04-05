@@ -17,6 +17,8 @@ import ru.altmanea.webapp.config.Config
 import ru.altmanea.webapp.data.Student
 import ru.altmanea.webapp.data.json
 import ru.altmanea.webapp.main
+import ru.altmanea.webapp.type.Firstname
+import ru.altmanea.webapp.type.Surname
 
 
 class ApplicationTest : StringSpec({
@@ -41,20 +43,20 @@ class ApplicationTest : StringSpec({
                 }
             }
             withClue("read id") {
-                val sheldon = students.first { it.elem.firstname == "Sheldon" }
+                val sheldon = students.first { it.elem.firstname.name == "Sheldon" }
                 val response = client.get("/students/${sheldon.id}") {
                     headers { this["Authorization"] = token.authHeader }
                 }
                 response.status shouldBe HttpStatusCode.OK
                 Json.decodeFromString<Item<Student>>(response.bodyAsText()).apply {
-                    elem.firstname shouldBe "Sheldon"
+                    elem.firstname.name shouldBe "Sheldon"
                 }
             }
             val newStudents = withClue("create") {
                 val response = client.post("/students/") {
                     headers { this["Authorization"] = token.authHeader }
                     contentType(ContentType.Application.Json)
-                    setBody(Student("Raj", "Koothrappali").json)
+                    setBody(Student(Firstname("Raj"), Surname("Koothrappali")).json)
                 }
                 response.status shouldBe HttpStatusCode.Created
                 Json.decodeFromString<List<Item<Student>>>(
@@ -66,14 +68,14 @@ class ApplicationTest : StringSpec({
                 }
             }
             val emi = withClue("update") {
-                val raj = newStudents.first { it.elem.firstname == "Raj" }
+                val raj = newStudents.first { it.elem.firstname.name == "Raj" }
                 client.put("/students/") {
                     headers { this["Authorization"] = token.authHeader }
                     contentType(ContentType.Application.Json)
                     setBody(
                         Json.encodeToString(
                             Item(
-                                Student("Amy", "Fowler"),
+                                Student(Firstname("Amy"), Surname("Fowler")),
                                 raj.id, raj.version)
                         )
                     )
@@ -85,7 +87,7 @@ class ApplicationTest : StringSpec({
                         headers { this["Authorization"] = token.authHeader }
                     }.bodyAsText()
                 ).apply {
-                    elem.firstname shouldBe "Amy"
+                    elem.firstname.name shouldBe "Amy"
                 }
             }
             withClue("delete") {
