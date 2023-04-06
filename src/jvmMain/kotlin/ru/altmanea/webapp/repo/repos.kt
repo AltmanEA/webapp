@@ -19,12 +19,12 @@ fun createTestData() {
         "Penny" to "Hofstadter"
     ).apply {
         map {
-            studentsRepo.create(
-                Student(
-                    Firstname(it.first),
-                    Surname(it.second)
-                )
-            )
+            Student.invoke(
+                Firstname(it.first),
+                Surname(it.second)
+            ).getOrNull()?.let {
+                studentsRepo.create(it)
+            }
         }
     }
 
@@ -44,13 +44,14 @@ fun createTestData() {
     check(sheldon != null)
     val leonard = students.findLast { it.elem.firstname.name == "Leonard" }
     check(leonard != null)
-    val math = lessons.findLast { it.elem.name =="Math" }
+    val math = lessons.findLast { it.elem.name == "Math" }
     check(math != null)
     val newMath = Lesson(
         math.elem.name,
         arrayOf(
             GradeInfo(sheldon.id, Grade.A),
             GradeInfo(leonard.id, Grade.B)
-        ))
+        )
+    )
     lessonsRepo.update(Item(newMath, math.id, math.version))
 }
